@@ -110,6 +110,9 @@ status_queue = queue.Queue()
 keyboard.add_hotkey(config['activation_key'], on_shortcut)
 pyinput_keyboard = Controller()
 
+# Initialize local_model to None
+local_model = None
+
 print(f'Script activated. Whisper is set to run using {method}. To change this, modify the "use_api" value in the src\\config.json file.')
 if not config['use_api']:
     print('Creating local model...')
