@@ -124,6 +124,7 @@ pyinput_keyboard = Controller()
 local_model = None
 
 print(f'Script activated. Whisper is set to run using {method}. To change this, modify the "use_api" value in the src\\config.json file.')
+local_model = None
 if not config['use_api']:
     print('Creating local model...')
     local_model = create_local_model(config)
