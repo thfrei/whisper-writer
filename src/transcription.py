@@ -34,7 +34,7 @@ def create_local_model(config):
 Record audio from the microphone and transcribe it using the Whisper model.
 Recording stops when the user stops speaking.
 """
-def record_and_transcribe(status_queue, cancel_flag, config, local_model=None):
+def record_and_transcribe(status_queue, cancel_flag, config, local_model=None, recording_thread=None):
     sound_device = config['sound_device'] if config else None
     sample_rate = config['sample_rate'] if config else 16000  # 16kHz, supported values: 8kHz, 16kHz, 32kHz, 48kHz, 96kHz
     frame_duration = 30  # 30ms, supported values: 10, 20, 30
@@ -47,11 +47,13 @@ def record_and_transcribe(status_queue, cancel_flag, config, local_model=None):
     num_silent_frames = 0
     num_buffer_frames = buffer_duration // frame_duration
     num_silence_frames = silence_duration // frame_duration
+    exit_reason = "Unknown"
     try:
-        print('Recording...') if config['print_to_terminal'] else ''
         with sd.InputStream(samplerate=sample_rate, channels=1, dtype='int16', blocksize=sample_rate * frame_duration // 1000,
-                            device=sound_device, callback=lambda indata, frames, time, status: buffer.extend(indata[:, 0])):
-            while not cancel_flag():
+                            device=sound_device, callback=lambda indata, frames, time, status: buffer.extend(indata[:, 0])) as stream:
+            device_info = sd.query_devices(stream.device)
+            print('Recording with sound device:', device_info['name']) if config['print_to_terminal'] else ''
+            while True:
                 if len(buffer) < sample_rate * frame_duration // 1000:
                     continue
 
@@ -66,15 +68,23 @@ def record_and_transcribe(status_queue, cancel_flag, config, local_model=None):
                     if len(recording) > 0:
                         num_silent_frames += 1
 
+                if num_silent_frames >= num_silence_frames or cancel_flag():
+                    if len(recording) < sample_rate:  # If <1 sec of audio recorded, continue
+                        continue  
+                    if cancel_flag():
+                        exit_reason= "Hotkey pressed"
                     if num_silent_frames >= num_silence_frames:
-                        break
+                        if recording_thread:
+                            recording_thread.stop()
+                        exit_reason = "Silence"
+                    break
 
-        if cancel_flag():
-            status_queue.put(('cancel', ''))
-            return ''
+#            if cancel_flag():
+#                status_queue.put(('cancel', ''))
+#                return ''
         
         audio_data = np.array(recording, dtype=np.int16)
-        print('Recording finished. Size:', audio_data.size) if config['print_to_terminal'] else ''
+        print(f'Recording finished: {exit_reason}. Size:', audio_data.size) if config['print_to_terminal'] else ''
         
         # Save the recorded audio as a temporary WAV file on disk
         with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as temp_audio_file:
@@ -115,9 +125,9 @@ def record_and_transcribe(status_queue, cancel_flag, config, local_model=None):
         # Remove the temporary audio file
         os.remove(temp_audio_file.name)
         
-        if cancel_flag():
-            status_queue.put(('cancel', ''))
-            return ''
+#        if cancel_flag():
+#            status_queue.put(('cancel', ''))
+#            return ''
 
         print('Transcription:', result.strip()) if config['print_to_terminal'] else ''
         status_queue.put(('idle', ''))
