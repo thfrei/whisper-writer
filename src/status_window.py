@@ -15,8 +15,8 @@ class StatusWindow(threading.Thread):
             self.window.after(100, func)
 
     def handle_close_button(self):
-        if hasattr(self, 'recording_thread'):
-            self.recording_thread.stop()
+        # if hasattr(self, 'recording_thread'):
+        #     self.recording_thread.stop()
         self.status_queue.put(('cancel', ''))
 
     def run(self):

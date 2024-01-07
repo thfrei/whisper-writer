@@ -6,11 +6,14 @@ import threading
 import time
 import keyboard
 from pynput.keyboard import Controller
-from transcription import create_local_model, record_and_transcribe
+from transcription import create_local_model, record_and_transcribe, record_and_transcribe_batch
 from status_window import StatusWindow
 
 recording_thread = None
 recording_state = 'idle'  # Possible states: 'idle', 'recording', 'finishing'
+batching_thread = None
+batching_state = 'idle'  # Possible states: 'idle', 'batching', 'finishing'
+pyinput_keyboard = None
 
 class ResultThread(threading.Thread):
     def __init__(self, *args, **kwargs):
@@ -46,6 +49,7 @@ def load_config_with_defaults():
             'vad_filter': False,
         },
         'activation_key': 'ctrl+shift+space',
+        'activation_key_batching': 'ctrl+shift+i',
         'sound_device': None,
         'sample_rate': 16000,
         'silence_duration': 900,
@@ -87,7 +91,6 @@ def start_recording():
     status_window.recording_thread = recording_thread
     status_window.start()
     recording_thread.start()
-#    recording_thread.join()
 
 def on_shortcut():
     global recording_thread, recording_state
@@ -98,6 +101,33 @@ def on_shortcut():
     elif recording_state == 'recording':
         print('Shortcut pressed. Finishing recording.')
         recording_thread.stop()
+    else:
+        print('Shortcut pressed, ignoring - recording is already finishing.')
+        
+def start_recording_batching():
+    global batching_thread, batching_state
+    batching_state = 'batching'
+    clear_status_queue()
+    status_queue.put(('batching', 'Batching: Recording->Transcribing--Recording...'))
+    batching_thread = threading.Thread(target=record_and_transcribe_batch, 
+                                    args=(status_queue,),
+                                    kwargs={'config': config,
+                                            'local_model': local_model if local_model and not config['use_api'] else None,
+                                            'recording_thread2': batching_thread},)
+    status_window = StatusWindow(status_queue)
+    status_window.recording_thread = recording_thread
+    status_window.start()
+    batching_thread.start()
+
+def on_shortcut_batching():
+    global batching_thread, batching_state
+
+    if batching_state == 'idle':
+        print('Shortcut pressed. Starting batchmode recording.')
+        start_recording_batching()
+    elif batching_state == 'batching':
+        print('Shortcut pressed. Finishing batching.')
+        batching_thread.stop()
     else:
         print('Shortcut pressed, ignoring - recording is already finishing.')
 
@@ -117,7 +147,8 @@ config = load_config_with_defaults()
 method = 'OpenAI\'s API' if config['use_api'] else 'a local model'
 status_queue = queue.Queue()
 
-keyboard.add_hotkey(config['activation_key'], on_shortcut)
+# keyboard.add_hotkey(config['activation_key'], on_shortcut)
+keyboard.add_hotkey(config['activation_key'], on_shortcut_batching)
 pyinput_keyboard = Controller()
 
 # Initialize local_model to None
@@ -130,7 +161,10 @@ if not config['use_api']:
     local_model = create_local_model(config)
     print('Local model created.')
 
-print(f'Press {format_keystrokes(config["activation_key"])} to start recording and transcribing. Press Ctrl+C on the terminal window to quit.')
+# print(f'Press {format_keystrokes(config["activation_key"])} to start recording and transcribing.')
+print(f'Press {format_keystrokes(config["activation_key"])} to start batch mode for continous transcription')
+print(f'Press Ctrl+C on the terminal window to quit.')
+
 while True:
     try:
         if recording_thread and recording_state == 'finishing' and not recording_thread.is_alive():

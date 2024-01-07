@@ -1,5 +1,5 @@
 {
-    "use_api": true,
+    "use_api": false,
     "api_options": {
         "model": "whisper-1",
         "language": "en",
@@ -8,15 +8,16 @@
     },
     "local_model_options": {
         "model": "base",
-        "device": "auto",
+        "device": "cpu",
         "compute_type": "auto",
         "language": null,
         "temperature": 0.0,
-        "initial_prompt": "This is a transcript of Dan Shapiro, the CEO of Glowforge, talking about topics like Aura and Proofgrade. ",
+        "initial_prompt": null,
         "condition_on_previous_text": true,
-        "vad_filter": false
+        "vad_filter": true
     },
     "activation_key": "ctrl+alt+space",
+    "activation_key_batching": "ctrl+alt+i",
     "sound_device": null,
     "sample_rate": 16000,
     "silence_duration": 900,
