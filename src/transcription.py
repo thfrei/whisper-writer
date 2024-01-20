@@ -136,6 +136,9 @@ def save_audio(config, recordings, files):
             # print('...save audio queue empty')
             time.sleep(0.2)
         except Exception as e:
+            print(f"An error occurred during transcription: {e}")
+            traceback.print_exc()
+        except Exception as e:
             traceback.print_exc()
             # status_queue.put(('error', 'Error'))
 
@@ -144,6 +147,10 @@ def transcribe_audio(config, files, transcriptions, local_model=None):
         try:
             # Transcribing saved audio file
             file_path = files.get()
+            print("Starting transcription for file:", file_path)                     
+            if not os.path.exists(file_path):                                                               
+                print(f"File not found: {file_path}")                                                       
+                continue                       
             print("Transcribing audio file:", file_path)
             
 
@@ -163,13 +170,18 @@ def transcribe_audio(config, files, transcriptions, local_model=None):
                     print('Creating local model...') if config['print_to_terminal'] else ''
                     local_model = create_local_model(config)
                     print('Local model created.') if config['print_to_terminal'] else ''
+
+                print("Using local model to transcribe.")
                 model_options = config['local_model_options']
+                start_time = time.time()
                 response = local_model.transcribe(audio=file_path,
                                                 language=model_options['language'],
                                                 initial_prompt=model_options['initial_prompt'],
                                                 condition_on_previous_text=model_options['condition_on_previous_text'],
                                                 temperature=model_options['temperature'],
                                                 vad_filter=model_options['vad_filter'],)
+                end_time = time.time()
+                print(f"Transcription completed in {end_time - start_time} seconds.")
                 result = ''.join([segment.text for segment in list(response[0])])
 
             # Remove the temporary audio file
@@ -189,6 +201,9 @@ def transcribe_audio(config, files, transcriptions, local_model=None):
         except queue.Empty:
             #print('...transcription queue empty')
             time.sleep(0.2)
+        except Exception as e:
+            print(f"An error occurred during transcription: {e}")
+            traceback.print_exc()
             return
 
 def typing(transcriptions):

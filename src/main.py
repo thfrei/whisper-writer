@@ -80,8 +80,8 @@ def clear_status_queue():
         except queue.Empty:
             break
 
-def start_recording_batching():
-    global batching_thread, batching_state
+def start_recording_batching(local_model):
+    # global batching_thread, batching_state
     # batching_state = 'batching'
     # clear_status_queue()
     # status_queue.put(('batching', 'Batching: Recording->Transcribing--Recording...'))
@@ -155,7 +155,7 @@ if not config['use_api']:
 
 # just start for debug
 print('starting')
-start_recording_batching()
+start_recording_batching(local_model)
     
 
 print(f'Press {format_keystrokes(config["activation_key"])} to start recording and transcribing. Press Ctrl+C on the terminal window to quit.')
