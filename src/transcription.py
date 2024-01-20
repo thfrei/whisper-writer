@@ -183,9 +183,10 @@ def transcribe_audio(config, files, transcriptions, local_model=None):
                 end_time = time.time()
                 print(f"Transcription completed in {end_time - start_time} seconds.")
                 result = ''.join([segment.text for segment in list(response[0])])
-
+            
             # Remove the temporary audio file
             try:
+                
                 os.remove(file_path)
             except Exception as e:
                 traceback.print_exc()
@@ -229,11 +230,20 @@ def record_and_transcribe_batch(config, local_model=None):
         transcription_thread = multiprocessing.Process(target=transcribe_audio, args=(config, files, transcriptions, local_model))
         typing_thread = multiprocessing.Process(target=typing, args=(transcriptions,))
 
+        print(f"Recording thread PID: {recording_thread.pid}")
+        print(f"Saving thread PID: {saving_thread.pid}")
+        print(f"Transcription thread PID: {transcription_thread.pid}")
+        print(f"Typing thread PID: {typing_thread.pid}")
+
         recording_thread.start()
+        print(f"Recording thread started with PID: {recording_thread.pid}")
         saving_thread.start()
+        print(f"Saving thread started with PID: {saving_thread.pid}")
         transcription_thread.start()
+        print(f"Transcription thread started with PID: {transcription_thread.pid}")
         typing_thread.start()
         
+        print(f"Typing thread started with PID: {typing_thread.pid}")
 
     except KeyboardInterrupt:
         # Interrupting the threads and waiting for them to finish
