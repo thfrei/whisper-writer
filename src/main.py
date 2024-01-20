@@ -8,6 +8,9 @@ from pynput.keyboard import Controller
 from transcription import create_local_model, record_and_transcribe
 from status_window import StatusWindow
 
+from pynput import keyboard
+
+
 class ResultThread(threading.Thread):
     def __init__(self, *args, **kwargs):
         super(ResultThread, self).__init__(*args, **kwargs)
@@ -95,20 +98,39 @@ def format_keystrokes(key_string):
     return '+'.join(word.capitalize() for word in key_string.split('+'))
 
 def typewrite(text, interval):
+    print(f'{text}')
+    keyboard = Controller()
+
     for letter in text:
-        pyinput_keyboard.press(letter)
-        pyinput_keyboard.release(letter)
+        keyboard.press(letter)
+        keyboard.release(letter)
         time.sleep(interval)
 
-
 # Main script
-
 config = load_config_with_defaults()
 method = 'OpenAI\'s API' if config['use_api'] else 'a local model'
 status_queue = queue.Queue()
 
-keyboard.add_hotkey(config['activation_key'], on_shortcut)
-pyinput_keyboard = Controller()
+# Define the activation key combination
+COMBINATION = {keyboard.Key.ctrl_l, keyboard.Key.alt_l, keyboard.Key.space}
+
+# The currently active modifiers
+current_keys = set()
+
+def on_press(key):
+    if key in COMBINATION:
+        current_keys.add(key)
+        if all(k in current_keys for k in COMBINATION):
+            # All required keys are currently pressed, so trigger the shortcut function
+            on_shortcut()
+
+def on_release(key):
+    try:
+        current_keys.remove(key)
+    except KeyError:
+        pass  # Key was not in the set of pressed keys, ignore
+
+
 
 print(f'Script activated. Whisper is set to run using {method}. To change this, modify the "use_api" value in the src\\config.json file.')
 local_model = None
@@ -119,7 +141,12 @@ if not config['use_api']:
 
 print(f'Press {format_keystrokes(config["activation_key"])} to start recording and transcribing. Press Ctrl+C on the terminal window to quit.')
 try:
-    keyboard.wait()  # Keep the script running to listen for the shortcut
+    # keyboard.wait()  # Keep the script running to listen for the shortcut
+    # Set up the listener
+    with keyboard.Listener(
+            on_press=on_press,
+            on_release=on_release) as listener:
+        listener.join()
 except KeyboardInterrupt:
     print('\nExiting the script...')
     os.system('exit')
