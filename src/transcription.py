@@ -315,10 +315,7 @@ def typing():
 
 
 
-def record_and_transcribe_batch(status_queue, cancel_flag, config, local_model=None, recording_thread2=None):
-    exit_reason = "Unknown"
-    stop_threads = False
-
+def record_and_transcribe_batch(status_queue, cancel_flag, config, local_model=None):
     try:
         # Creating and starting the threads
         recording_thread = multiprocessing.Process(target=record_audio, args=(status_queue, cancel_flag, config))
@@ -331,14 +328,7 @@ def record_and_transcribe_batch(status_queue, cancel_flag, config, local_model=N
         transcription_thread.start()
         typing_thread.start()
         
-        # Waiting for keyboard interrupt to end the script
-        while True:
-            time.sleep(1)
-
     except KeyboardInterrupt:
-        # Signal threads to stop
-        stop_threads = True
-        
         # Interrupting the threads and waiting for them to finish
         recording_thread.join()
         saving_thread.join()
