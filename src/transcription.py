@@ -50,7 +50,7 @@ def create_local_model(config):
 =====================================================================
 """
 
-def record_audio(config):
+def record_audio(config, recordings):
     sound_device = config['sound_device'] if config else None
     sample_rate = config['sample_rate'] if config else 16000  # 16kHz, supported values: 8kHz, 16kHz, 32kHz, 48kHz, 96kHz
     frame_duration = 30  # 30ms, supported values: 10, 20, 30
@@ -65,64 +65,63 @@ def record_audio(config):
     num_silence_frames = silence_duration // frame_duration
     exit_reason = "Unknown"
 
-    # while True:
-    try:
-        with sd.InputStream(samplerate=sample_rate, channels=1, dtype='int16', blocksize=sample_rate * frame_duration // 1000,
-                            device=sound_device, callback=lambda indata, frames, time, status: buffer.extend(indata[:, 0])) as stream:
-            device_info = sd.query_devices(stream.device)
-            print('Recording with sound device:', device_info['name']) if config['print_to_terminal'] else ''
-            while True:
-                # print(".", end="")
-                if len(buffer) < sample_rate * frame_duration // 1000:
-                    continue
+    while True:
+        try:
+            with sd.InputStream(samplerate=sample_rate, channels=1, dtype='int16', blocksize=sample_rate * frame_duration // 1000,
+                                device=sound_device, callback=lambda indata, frames, time, status: buffer.extend(indata[:, 0])) as stream:
+                device_info = sd.query_devices(stream.device)
+                print('Recording with sound device:', device_info['name']) if config['print_to_terminal'] else ''
+                while True:
+                    if len(buffer) < sample_rate * frame_duration // 1000:
+                        continue
 
-                frame = buffer[:sample_rate * frame_duration // 1000]
-                buffer = buffer[sample_rate * frame_duration // 1000:]
+                    frame = buffer[:sample_rate * frame_duration // 1000]
+                    buffer = buffer[sample_rate * frame_duration // 1000:]
 
-                is_speech = vad.is_speech(np.array(frame).tobytes(), sample_rate)
-                if is_speech:
-                    recording.extend(frame)
-                    num_silent_frames = 0
-                else:
-                    if len(recording) > 0:
-                        num_silent_frames += 1
+                    is_speech = vad.is_speech(np.array(frame).tobytes(), sample_rate)
+                    if is_speech:
+                        recording.extend(frame)
+                        num_silent_frames = 0
+                    else:
+                        if len(recording) > 0:
+                            num_silent_frames += 1
 
-                # if num_silent_frames >= num_silence_frames or cancel_flag():
-                if num_silent_frames >= num_silence_frames:
-                    if len(recording) < sample_rate:  # If <1 sec of audio recorded, continue
-                        continue  
-                    # if cancel_flag():
-                    #     exit_reason= "Hotkey pressed"
+                    # if num_silent_frames >= num_silence_frames or cancel_flag():
                     if num_silent_frames >= num_silence_frames:
-                        exit_reason = "Silence"
+                        if len(recording) < sample_rate:  # If <1 sec of audio recorded, continue
+                            continue  
+                        # if cancel_flag():
+                        #     exit_reason= "Hotkey pressed"
+                        if num_silent_frames >= num_silence_frames:
+                            exit_reason = "Silence"
+                            break
                         break
-                    break
 
-        audio_data = np.array(recording, dtype=np.int16)
-        recordings.put(audio_data)
-        print(f'Recording finished: {exit_reason}. Size:', audio_data.size) if config['print_to_terminal'] else ''
+            audio_data = np.array(recording, dtype=np.int16)
+            recordings.put(audio_data)
+            print(f'Recording finished: {exit_reason}. Size:', audio_data.size) if config['print_to_terminal'] else ''
 
-        # restart audio
-        exit_reason = "Unknown"
-        buffer = []
-        recording = []
-        num_silent_frames = 0
-        num_buffer_frames = buffer_duration // frame_duration
-        num_silence_frames = silence_duration // frame_duration
-    except sd.PortAudioError as e:
-        print(f"An error occurred while opening the audio input stream: {e}")
-        if config['print_to_terminal']:
-            print("Please check your sound device settings and try again.")
-        return
-        # status_queue.put(('error', 'Error'))
+            # restart audio
+            exit_reason = "Unknown"
+            buffer = []
+            recording = []
+            num_silent_frames = 0
+            num_buffer_frames = buffer_duration // frame_duration
+            num_silence_frames = silence_duration // frame_duration
+        except sd.PortAudioError as e:
+            print(f"An error occurred while opening the audio input stream: {e}")
+            if config['print_to_terminal']:
+                print("Please check your sound device settings and try again.")
+            return
+            # status_queue.put(('error', 'Error'))
 
-def save_audio(config):
+def save_audio(config, recordings, files):
     sample_rate = config['sample_rate'] if config else 16000  # 16kHz, supported values: 8kHz, 16kHz, 32kHz, 48kHz, 96kHz
     while not stop_saving.is_set():
         try:
             # print("Recording queue:")
             # print(list(recordings.queue))
-            audio_data = recordings.get_nowait()
+            audio_data = recordings.get()
             print('Recording detected. Saving...')
             # Save the recorded audio as a temporary WAV file on disk
             with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as temp_audio_file:
@@ -133,7 +132,6 @@ def save_audio(config):
                     wf.writeframes(audio_data.tobytes())
             files.put(temp_audio_file.name)
             print(f'Recording saved to: {temp_audio_file.name}')
-            recordings.task_done()
         except queue.Empty:
             # print('...save audio queue empty')
             time.sleep(0.2)
@@ -141,15 +139,14 @@ def save_audio(config):
             traceback.print_exc()
             # status_queue.put(('error', 'Error'))
 
-def transcribe_audio(config, local_model=None):
+def transcribe_audio(config, files, transcriptions, local_model=None):
     while not stop_transcribing.is_set():
         try:
-            print("Files queue:")
-            # print(list(files))
             # Transcribing saved audio file
-            file_path = files.get_nowait()
+            file_path = files.get()
             print("Transcribing audio file:", file_path)
             
+
             # If configured, transcribe the temporary audio file using the OpenAI API
             if config['use_api']:
                 api_options = config['api_options']
@@ -184,24 +181,23 @@ def transcribe_audio(config, local_model=None):
 
             print('Transcription:', result.strip()) if config['print_to_terminal'] else ''
             # status_queue.put(('idle', ''))
+
             
             text = process_transcription(result.strip(), config) if result else ''
             transcriptions.put(text)
-            files.task_done()
             return
         except queue.Empty:
             #print('...transcription queue empty')
             time.sleep(0.2)
             return
 
-def typing():
+def typing(transcriptions):
     # try:
         while not stop_typing.is_set():
             try:
                 transcription = transcriptions.get_nowait()
                 print('Typing: ')
                 print(transcription)
-                transcriptions.task_done()
             except queue.Empty:
                 time.sleep(1)
     # except KeyboardInterrupt:
@@ -213,24 +209,23 @@ def typing():
 def record_and_transcribe_batch(config, local_model=None):
     try:
         # Creating and starting the threads
-        recording_thread = multiprocessing.Process(target=record_audio, args=(config,))
-        # saving_thread = multiprocessing.Process(target=save_audio, args=(config,))
-        # transcription_thread = multiprocessing.Process(target=transcribe_audio, args=(config, local_model))
-        # typing_thread = multiprocessing.Process(target=typing)
-        
+        recording_thread = multiprocessing.Process(target=record_audio, args=(config, recordings))
+        saving_thread = multiprocessing.Process(target=save_audio, args=(config, recordings, files))
+        transcription_thread = multiprocessing.Process(target=transcribe_audio, args=(config, files, transcriptions, local_model))
+        typing_thread = multiprocessing.Process(target=typing, args=(transcriptions,))
 
         recording_thread.start()
-        # saving_thread.start()
-        # transcription_thread.start()
-        # typing_thread.start()
+        saving_thread.start()
+        transcription_thread.start()
+        typing_thread.start()
         
 
     except KeyboardInterrupt:
         # Interrupting the threads and waiting for them to finish
         recording_thread.join()
-        # saving_thread.join()
-        # transcription_thread.join()
-        # typing_thread.join()
+        saving_thread.join()
+        transcription_thread.join()
+        typing_thread.join()
     except sounddevice.PortAudioError as e:
         print(f"An error occurred while opening the audio input stream: {e}")
         return
