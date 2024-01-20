@@ -6,8 +6,11 @@ import threading
 import time
 import keyboard
 from pynput.keyboard import Controller
-from transcription import create_local_model, record_and_transcribe, record_and_transcribe_batch
+from transcription import create_local_model, record_and_transcribe_batch
 from status_window import StatusWindow
+
+from pynput import keyboard
+
 
 recording_thread = None
 recording_state = 'idle'  # Possible states: 'idle', 'recording', 'finishing'
@@ -77,47 +80,21 @@ def clear_status_queue():
         except queue.Empty:
             break
 
-def start_recording():
-    global recording_thread, recording_state
-    recording_state = 'recording'
-    clear_status_queue()
-    status_queue.put(('recording', 'Recording...'))
-    recording_thread = ResultThread(target=record_and_transcribe, 
-                                    args=(status_queue,),
-                                    kwargs={'config': config,
-                                            'local_model': local_model if local_model and not config['use_api'] else None,
-                                            'recording_thread': recording_thread},)
-    status_window = StatusWindow(status_queue)
-    status_window.recording_thread = recording_thread
-    status_window.start()
-    recording_thread.start()
-
-def on_shortcut():
-    global recording_thread, recording_state
-
-    if recording_state == 'idle':
-        print('Shortcut pressed. Starting recording.')
-        start_recording()
-    elif recording_state == 'recording':
-        print('Shortcut pressed. Finishing recording.')
-        recording_thread.stop()
-    else:
-        print('Shortcut pressed, ignoring - recording is already finishing.')
-        
 def start_recording_batching():
     global batching_thread, batching_state
-    batching_state = 'batching'
-    clear_status_queue()
-    status_queue.put(('batching', 'Batching: Recording->Transcribing--Recording...'))
-    batching_thread = threading.Thread(target=record_and_transcribe_batch, 
-                                    args=(status_queue,),
-                                    kwargs={'config': config,
-                                            'local_model': local_model if local_model and not config['use_api'] else None,
-                                            'recording_thread2': batching_thread},)
-    status_window = StatusWindow(status_queue)
-    status_window.recording_thread = recording_thread
-    status_window.start()
-    batching_thread.start()
+    # batching_state = 'batching'
+    # clear_status_queue()
+    # status_queue.put(('batching', 'Batching: Recording->Transcribing--Recording...'))
+    # batching_thread = threading.Thread(target=record_and_transcribe_batch, 
+    #                                 args=(status_queue,),
+    #                                 kwargs={'config': config,
+    #                                         'local_model': local_model if local_model and not config['use_api'] else None,
+    #                                         },)
+    # status_window = StatusWindow(status_queue)
+    # status_window.recording_thread = recording_thread
+    # status_window.start()
+    # batching_thread.start()
+    record_and_transcribe_batch(config, local_model if local_model and not config['use_api'] else None)
 
 def on_shortcut_batching():
     global batching_thread, batching_state
@@ -127,7 +104,7 @@ def on_shortcut_batching():
         start_recording_batching()
     elif batching_state == 'batching':
         print('Shortcut pressed. Finishing batching.')
-        batching_thread.stop()
+        # batching_thread.stop()
     else:
         print('Shortcut pressed, ignoring - recording is already finishing.')
 
@@ -135,24 +112,39 @@ def format_keystrokes(key_string):
     return '+'.join(word.capitalize() for word in key_string.split('+'))
 
 def typewrite(text, interval):
+    print(f'{text}')
+    keyboard = Controller()
+
     for letter in text:
-        pyinput_keyboard.press(letter)
-        pyinput_keyboard.release(letter)
+        keyboard.press(letter)
+        keyboard.release(letter)
         time.sleep(interval)
 
-
 # Main script
-
 config = load_config_with_defaults()
 method = 'OpenAI\'s API' if config['use_api'] else 'a local model'
 status_queue = queue.Queue()
 
-# keyboard.add_hotkey(config['activation_key'], on_shortcut)
-keyboard.add_hotkey(config['activation_key'], on_shortcut_batching)
-pyinput_keyboard = Controller()
+# Define the activation key combination
+COMBINATION = {keyboard.Key.ctrl_l, keyboard.Key.alt_l, keyboard.Key.space}
 
-# Initialize local_model to None
-local_model = None
+# The currently active modifiers
+current_keys = set()
+
+def on_press(key):
+    if key in COMBINATION:
+        current_keys.add(key)
+        if all(k in current_keys for k in COMBINATION):
+            # All required keys are currently pressed, so trigger the shortcut function
+            on_shortcut_batching()
+
+def on_release(key):
+    try:
+        current_keys.remove(key)
+    except KeyError:
+        pass  # Key was not in the set of pressed keys, ignore
+
+
 
 print(f'Script activated. Whisper is set to run using {method}. To change this, modify the "use_api" value in the src\\config.json file.')
 local_model = None
@@ -161,18 +153,19 @@ if not config['use_api']:
     local_model = create_local_model(config)
     print('Local model created.')
 
-# print(f'Press {format_keystrokes(config["activation_key"])} to start recording and transcribing.')
-print(f'Press {format_keystrokes(config["activation_key"])} to start batch mode for continous transcription')
-print(f'Press Ctrl+C on the terminal window to quit.')
+# just start for debug
+print('starting')
+start_recording_batching()
+    
 
-while True:
-    try:
-        if recording_thread and recording_state == 'finishing' and not recording_thread.is_alive():
-            transcribed_text = recording_thread.result
-            if transcribed_text:
-                typewrite(transcribed_text, interval=config['writing_key_press_delay'])
-            recording_state = 'idle'
-        time.sleep(0.1)  # Check every 100ms
-    except KeyboardInterrupt:
-        print('\nExiting the script...')
-        sys.exit()
+print(f'Press {format_keystrokes(config["activation_key"])} to start recording and transcribing. Press Ctrl+C on the terminal window to quit.')
+try:
+    # keyboard.wait()  # Keep the script running to listen for the shortcut
+    # Set up the listener
+    with keyboard.Listener(
+            on_press=on_press,
+            on_release=on_release) as listener: 
+        listener.join()
+except KeyboardInterrupt:
+    print('\nExiting the script...')
+    os.system('exit')

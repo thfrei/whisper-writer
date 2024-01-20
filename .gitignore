@@ -132,3 +132,6 @@ dmypy.json
 src/config.json
 launch.bat
 .gitignore
+
+# aider stuff
+.aider*

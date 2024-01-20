@@ -18,7 +18,7 @@
     },
     "activation_key": "ctrl+alt+space",
     "activation_key_batching": "ctrl+alt+i",
-    "sound_device": null,
+    "sound_device": 4,
     "sample_rate": 16000,
     "silence_duration": 900,
     "writing_key_press_delay": 0.005,
