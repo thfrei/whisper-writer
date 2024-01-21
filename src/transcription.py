@@ -11,9 +11,10 @@ import threading
 import time
 from multiprocessing import Queue
 import multiprocessing
-from pynput.keyboard import Controller
+from pynput.keyboard import Controller as KeyboardController
 from dotenv import load_dotenv
 from faster_whisper import WhisperModel
+from utils import load_config_with_defaults
 
 recordings = Queue()
 files = Queue()
@@ -142,7 +143,15 @@ def save_audio(config, recordings, files):
             traceback.print_exc()
             # status_queue.put(('error', 'Error'))
 
-def transcribe_audio(config, files, transcriptions, local_model=None):
+def transcribe_audio(config, files, transcriptions):
+    method = 'OpenAI\'s API' if config['use_api'] else 'a local model'
+    local_model = None
+    print(f'Script activated. Whisper is set to run using {method}. To change this, modify the "use_api" value in the src\\config.json file.')
+    if not config['use_api']:
+        print('Creating local model...')
+        local_model = create_local_model(config)
+        print('Local model created.')
+
     while not stop_transcribing.is_set():
         try:
             # Transcribing saved audio file
@@ -186,7 +195,6 @@ def transcribe_audio(config, files, transcriptions, local_model=None):
             
             # Remove the temporary audio file
             try:
-                
                 os.remove(file_path)
             except Exception as e:
                 traceback.print_exc()
@@ -198,7 +206,6 @@ def transcribe_audio(config, files, transcriptions, local_model=None):
             
             text = process_transcription(result.strip(), config) if result else ''
             transcriptions.put(text)
-            return
         except queue.Empty:
             #print('...transcription queue empty')
             time.sleep(0.2)
@@ -207,27 +214,28 @@ def transcribe_audio(config, files, transcriptions, local_model=None):
             traceback.print_exc()
             return
 
-def typing(transcriptions):
-    # try:
-        while not stop_typing.is_set():
-            try:
-                transcription = transcriptions.get_nowait()
-                print('Typing: ')
-                print(transcription)
-            except queue.Empty:
-                time.sleep(1)
-    # except KeyboardInterrupt:
-    #     print("typing(): Keyboard Interrupt detected, stopping thread")
-    # finally:
-    #     stop_typing.set()
+def typing(transcriptions, interval=0.005):
+    keyboard = KeyboardController()
+    while not stop_typing.is_set():
+        try:
+            transcription = transcriptions.get_nowait()
+            print('Typing: ')
+            for char in transcription:
+                print(char, end="")
+                keyboard.press(char)
+                keyboard.release(char)
+                time.sleep(interval)
+        except queue.Empty:
+            time.sleep(0.2)
         
 
-def record_and_transcribe_batch(config, local_model=None):
+def record_and_transcribe_batch():
     try:
         # Creating and starting the threads
-        recording_thread = multiprocessing.Process(target=record_audio, args=(config, recordings))
-        saving_thread = multiprocessing.Process(target=save_audio, args=(config, recordings, files))
-        transcription_thread = multiprocessing.Process(target=transcribe_audio, args=(config, files, transcriptions, local_model))
+        config = load_config_with_defaults()
+        recording_thread = multiprocessing.Process(target=record_audio, args=(config, recordings,))
+        saving_thread = multiprocessing.Process(target=save_audio, args=(config, recordings, files,))
+        transcription_thread = multiprocessing.Process(target=transcribe_audio, args=(config, files, transcriptions,))
         typing_thread = multiprocessing.Process(target=typing, args=(transcriptions,))
 
         print(f"Recording thread PID: {recording_thread.pid}")
@@ -251,6 +259,6 @@ def record_and_transcribe_batch(config, local_model=None):
         saving_thread.join()
         transcription_thread.join()
         typing_thread.join()
-    except sounddevice.PortAudioError as e:
-        print(f"An error occurred while opening the audio input stream: {e}")
-        return
+    # except sounddevice.PortAudioError as e:
+    #     print(f"An error occurred while opening the audio input stream: {e}")
+    #     return

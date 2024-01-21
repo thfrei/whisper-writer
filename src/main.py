@@ -32,47 +32,6 @@ class ResultThread(threading.Thread):
         recording_state = 'finishing'
         self.stop_transcription = True
 
-def load_config_with_defaults():
-    default_config = {
-        'use_api': False,
-        'api_options': {
-            'model': 'whisper-1',
-            'language': None,
-            'temperature': 0.0,
-            'initial_prompt': None
-        },
-        'local_model_options': {
-            'model': 'base',
-            'device': 'auto',
-            'compute_type': 'auto',
-            'language': None,
-            'temperature': 0.0,
-            'initial_prompt': None,
-            'condition_on_previous_text': True,
-            'vad_filter': False,
-        },
-        'activation_key': 'ctrl+shift+space',
-        'activation_key_batching': 'ctrl+shift+i',
-        'sound_device': None,
-        'sample_rate': 16000,
-        'silence_duration': 900,
-        'writing_key_press_delay': 0.008,
-        'remove_trailing_period': True,
-        'add_trailing_space': False,
-        'remove_capitalization': False,
-        'print_to_terminal': True,
-    }
-
-    config_path = os.path.join('src', 'config.json')
-    if os.path.isfile(config_path):
-        with open(config_path, 'r') as config_file:
-            user_config = json.load(config_file)
-            for key, value in user_config.items():
-                if key in default_config and value is not None:
-                    default_config[key] = value
-
-    return default_config
-
 def clear_status_queue():
     while not status_queue.empty():
         try:
@@ -80,7 +39,7 @@ def clear_status_queue():
         except queue.Empty:
             break
 
-def start_recording_batching(local_model):
+def start_recording_batching():
     # global batching_thread, batching_state
     # batching_state = 'batching'
     # clear_status_queue()
@@ -94,7 +53,7 @@ def start_recording_batching(local_model):
     # status_window.recording_thread = recording_thread
     # status_window.start()
     # batching_thread.start()
-    record_and_transcribe_batch(config, local_model if local_model and not config['use_api'] else None)
+    record_and_transcribe_batch()
 
 def on_shortcut_batching():
     global batching_thread, batching_state
@@ -120,9 +79,6 @@ def typewrite(text, interval):
         keyboard.release(letter)
         time.sleep(interval)
 
-# Main script
-config = load_config_with_defaults()
-method = 'OpenAI\'s API' if config['use_api'] else 'a local model'
 status_queue = queue.Queue()
 
 # Define the activation key combination
@@ -145,20 +101,12 @@ def on_release(key):
         pass  # Key was not in the set of pressed keys, ignore
 
 
-
-print(f'Script activated. Whisper is set to run using {method}. To change this, modify the "use_api" value in the src\\config.json file.')
-local_model = None
-if not config['use_api']:
-    print('Creating local model...')
-    local_model = create_local_model(config)
-    print('Local model created.')
-
 # just start for debug
 print('starting')
-start_recording_batching(local_model)
+start_recording_batching()
     
 
-print(f'Press {format_keystrokes(config["activation_key"])} to start recording and transcribing. Press Ctrl+C on the terminal window to quit.')
+print(f'Press to start recording and transcribing. Press Ctrl+C on the terminal window to quit.')
 try:
     # keyboard.wait()  # Keep the script running to listen for the shortcut
     # Set up the listener
