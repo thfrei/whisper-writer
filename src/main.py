@@ -1,36 +1,14 @@
-import json
 import os
-import sys
 import queue
-import threading
 import time
 import keyboard
 from pynput.keyboard import Controller
-from transcription import create_local_model, record_and_transcribe_batch
+from transcription import record_and_transcribe_batch
 from status_window import StatusWindow
 
 from pynput import keyboard
 
-
-recording_thread = None
-recording_state = 'idle'  # Possible states: 'idle', 'recording', 'finishing'
-batching_thread = None
-batching_state = 'idle'  # Possible states: 'idle', 'batching', 'finishing'
-pyinput_keyboard = None
-
-class ResultThread(threading.Thread):
-    def __init__(self, *args, **kwargs):
-        super(ResultThread, self).__init__(*args, **kwargs)
-        self.result = None
-        self.stop_transcription = False
-
-    def run(self):
-        self.result = self._target(*self._args, cancel_flag=lambda: self.stop_transcription, **self._kwargs)
-
-    def stop(self):
-        global recording_state
-        recording_state = 'finishing'
-        self.stop_transcription = True
+batching_state = 'idle'
 
 def clear_status_queue():
     while not status_queue.empty():
@@ -39,36 +17,18 @@ def clear_status_queue():
         except queue.Empty:
             break
 
-def start_recording_batching():
-    # global batching_thread, batching_state
-    # batching_state = 'batching'
-    # clear_status_queue()
-    # status_queue.put(('batching', 'Batching: Recording->Transcribing--Recording...'))
-    # batching_thread = threading.Thread(target=record_and_transcribe_batch, 
-    #                                 args=(status_queue,),
-    #                                 kwargs={'config': config,
-    #                                         'local_model': local_model if local_model and not config['use_api'] else None,
-    #                                         },)
-    # status_window = StatusWindow(status_queue)
-    # status_window.recording_thread = recording_thread
-    # status_window.start()
-    # batching_thread.start()
-    record_and_transcribe_batch()
-
-def on_shortcut_batching():
-    global batching_thread, batching_state
+def on_shortcut():
+    global batching_state
 
     if batching_state == 'idle':
         print('Shortcut pressed. Starting batchmode recording.')
-        start_recording_batching()
+        batching_state = 'batching'
+        record_and_transcribe_batch()
     elif batching_state == 'batching':
         print('Shortcut pressed. Finishing batching.')
-        # batching_thread.stop()
+        batching_thread.stop()
     else:
         print('Shortcut pressed, ignoring - recording is already finishing.')
-
-def format_keystrokes(key_string):
-    return '+'.join(word.capitalize() for word in key_string.split('+'))
 
 def typewrite(text, interval):
     print(f'{text}')
@@ -92,19 +52,13 @@ def on_press(key):
         current_keys.add(key)
         if all(k in current_keys for k in COMBINATION):
             # All required keys are currently pressed, so trigger the shortcut function
-            on_shortcut_batching()
+            on_shortcut()
 
 def on_release(key):
     try:
         current_keys.remove(key)
     except KeyError:
         pass  # Key was not in the set of pressed keys, ignore
-
-
-# just start for debug
-print('starting')
-start_recording_batching()
-    
 
 print(f'Press to start recording and transcribing. Press Ctrl+C on the terminal window to quit.')
 try:

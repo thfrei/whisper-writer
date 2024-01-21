@@ -6,11 +6,9 @@ import sounddevice as sd
 import tempfile
 import wave
 import webrtcvad
-import keyboard
 import threading
 import time
-from multiprocessing import Queue
-import multiprocessing
+from multiprocessing import Queue, Process
 from pynput.keyboard import Controller as KeyboardController
 from dotenv import load_dotenv
 from faster_whisper import WhisperModel
@@ -23,7 +21,6 @@ stop_recording = threading.Event()
 stop_saving = threading.Event()
 stop_transcribing = threading.Event()
 stop_typing = threading.Event()
-stop_threads = False
 
 if load_dotenv():
     openai.api_key = os.getenv('OPENAI_API_KEY')
@@ -120,8 +117,6 @@ def save_audio(config, recordings, files):
     sample_rate = config['sample_rate'] if config else 16000  # 16kHz, supported values: 8kHz, 16kHz, 32kHz, 48kHz, 96kHz
     while not stop_saving.is_set():
         try:
-            # print("Recording queue:")
-            # print(list(recordings.queue))
             audio_data = recordings.get()
             print('Recording detected. Saving...')
             # Save the recorded audio as a temporary WAV file on disk
@@ -162,7 +157,6 @@ def transcribe_audio(config, files, transcriptions):
                 continue                       
             print("Transcribing audio file:", file_path)
             
-
             # If configured, transcribe the temporary audio file using the OpenAI API
             if config['use_api']:
                 api_options = config['api_options']
@@ -175,11 +169,6 @@ def transcribe_audio(config, files, transcriptions):
                 result = response.get('text')
             # Otherwise, transcribe the temporary audio file using a local model
             elif not config['use_api']:
-                if not local_model:
-                    print('Creating local model...') if config['print_to_terminal'] else ''
-                    local_model = create_local_model(config)
-                    print('Local model created.') if config['print_to_terminal'] else ''
-
                 print("Using local model to transcribe.")
                 model_options = config['local_model_options']
                 start_time = time.time()
@@ -227,16 +216,15 @@ def typing(transcriptions, interval=0.005):
                 time.sleep(interval)
         except queue.Empty:
             time.sleep(0.2)
-        
 
 def record_and_transcribe_batch():
     try:
         # Creating and starting the threads
         config = load_config_with_defaults()
-        recording_thread = multiprocessing.Process(target=record_audio, args=(config, recordings,))
-        saving_thread = multiprocessing.Process(target=save_audio, args=(config, recordings, files,))
-        transcription_thread = multiprocessing.Process(target=transcribe_audio, args=(config, files, transcriptions,))
-        typing_thread = multiprocessing.Process(target=typing, args=(transcriptions,))
+        recording_thread = Process(target=record_audio, args=(config, recordings,))
+        saving_thread = Process(target=save_audio, args=(config, recordings, files,))
+        transcription_thread = Process(target=transcribe_audio, args=(config, files, transcriptions,))
+        typing_thread = Process(target=typing, args=(transcriptions,))
 
         print(f"Recording thread PID: {recording_thread.pid}")
         print(f"Saving thread PID: {saving_thread.pid}")
@@ -259,6 +247,3 @@ def record_and_transcribe_batch():
         saving_thread.join()
         transcription_thread.join()
         typing_thread.join()
-    # except sounddevice.PortAudioError as e:
-    #     print(f"An error occurred while opening the audio input stream: {e}")
-    #     return
