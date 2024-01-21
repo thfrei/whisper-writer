@@ -58,7 +58,7 @@ def record_audio(config, recordings):
     buffer_duration = 300  # 300ms
     silence_duration = config['silence_duration'] if config else 900  # 900ms
 
-    vad = webrtcvad.Vad(1)  # Aggressiveness mode: 3 (highest)
+    vad = webrtcvad.Vad(2)  # Aggressiveness mode: 3 (highest)
     buffer = []
     recording = []
     num_silent_frames = 0

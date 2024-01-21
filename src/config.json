@@ -7,7 +7,7 @@
         "initial_prompt": null
     },
     "local_model_options": {
-        "model": "base",
+        "model": "large-v3",
         "device": "cpu",
         "compute_type": "auto",
         "language": null,
@@ -16,11 +16,10 @@
         "condition_on_previous_text": true,
         "vad_filter": true
     },
-    "activation_key": "ctrl+alt+space",
-    "activation_key_batching": "ctrl+alt+i",
+    "activation_key": "// not working - ctrl+alt+space",
     "sound_device": 4,
     "sample_rate": 16000,
-    "silence_duration": 900,
+    "silence_duration": 500,
     "writing_key_press_delay": 0.005,
     "remove_trailing_period": false,
     "add_trailing_space": true,
