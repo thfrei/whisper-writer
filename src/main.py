@@ -8,7 +8,7 @@ from save import save_audio
 # from status_window import StatusWindow
 from transcribe import transcribe_audio
 from type import typing
-from utils import load_config_with_defaults
+from utils import load_config_with_defaults_from_env
 from constants import State
 from keyboard_key_parser import parse_key_combination
 
@@ -20,7 +20,7 @@ status_pipe_parent, status_pipe_child = Pipe()
 stop_recording = Event()
 stop_recording.set()
 
-config = load_config_with_defaults()
+config = load_config_with_defaults_from_env()
 
 # Define the activation key combination
 # todo use a wrapper function
