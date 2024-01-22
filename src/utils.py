@@ -16,7 +16,7 @@ def load_config_with_defaults_from_env():
             # cpu, cuda, auto
             'device': os.getenv('LOCAL_DEVICE', 'auto'),
             'compute_type': os.getenv('LOCAL_COMPUTE_TYPE', 'auto'),
-            'language': os.getenv('LOCAL_LANGUAGE'),
+            'language': os.getenv('LOCAL_LANGUAGE') or None,
             'temperature': float(os.getenv('LOCAL_TEMPERATURE', '0.0')),
             'initial_prompt': os.getenv('LOCAL_INITIAL_PROMPT'),
             'condition_on_previous_text': os.getenv('LOCAL_CONDITION_ON_PREVIOUS_TEXT', 'True').lower() in ('true', '1', 't'),
@@ -25,7 +25,7 @@ def load_config_with_defaults_from_env():
         # vad silence filter: 3 highest
         'vad': int(os.getenv('VAD', '2')),
         'activation_key': os.getenv('ACTIVATION_KEY', 'ctrl+shift+space'),
-        'sound_device': os.getenv('SOUND_DEVICE', '') or None,
+        'sound_device': int(os.getenv('SOUND_DEVICE', '0')) or None,
         'sample_rate': int(os.getenv('SAMPLE_RATE', '16000')),
         'silence_duration': int(os.getenv('SILENCE_DURATION', '900')),
         'writing_key_press_delay': float(os.getenv('WRITING_KEY_PRESS_DELAY', '0.008')),
