@@ -11,7 +11,7 @@
 - works in linux without root (the original pyinput_keyboard somehow required root access).
   - didn't test if it still runs on windows or other os.
   - to be configurable in json, required keyboard_key_parser.
-- Umlaute work?! (at least)
+- Umlaute may work?!
 - use `.env` for all app config. (make sure to copy from .env.example)
 
 Notes:
