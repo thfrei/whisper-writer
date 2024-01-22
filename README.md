@@ -12,6 +12,7 @@
   - didn't test if it still runs on windows or other os.
   - to be configurable in json, required keyboard_key_parser.
 - Umlaute work?! (at least)
+- use `.env` for all app config. (make sure to copy from .env.example)
 
 Notes:
 - find all sound devices: `python -m sounddevice`
