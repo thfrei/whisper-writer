@@ -8,6 +8,14 @@
 - continous recording and transcribing: recording, saving, transcribing and typing is split into subprocesses, so that longer speech is split into multiple recordings. each recording is then saved, and transcribed and "typed" while next recording is still running. 
 - pressing shortcut again, will stop recording.
 - unfinished: StatusWindow is not yet showing.
+- works in linux without root (the original pyinput_keyboard somehow required root access).
+  - didn't test if it still runs on windows or other os.
+  - to be configurable in json, required keyboard_key_parser.
+- Umlaute work?! (at least)
+
+Notes:
+- find all sound devices: `python -m sounddevice`
+- just like the original author, used a LOT of chatgpt to write code :-)
 
 ---
 

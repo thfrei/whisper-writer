@@ -7,7 +7,7 @@
         "initial_prompt": null
     },
     "local_model_options": {
-        "model": "large-v3",
+        "model": "medium",
         "device": "cpu",
         "compute_type": "auto",
         "language": null,
@@ -16,7 +16,7 @@
         "condition_on_previous_text": true,
         "vad_filter": true
     },
-    "activation_key": "ctrl+alt+space",
+    "activation_key": "ctrl+shift+space",
     "sound_device": 6,
     "sample_rate": 16000,
     "silence_duration": 500,
