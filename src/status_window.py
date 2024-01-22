@@ -6,9 +6,9 @@ import threading
 from PIL import Image, ImageTk
 
 class StatusWindow(threading.Thread):
-    def __init__(self, status_queue):
+    def __init__(self, status_pipe):
         threading.Thread.__init__(self)
-        self.status_queue = status_queue
+        self.status_pipe = status_pipe
         
     def schedule_check(self, func):
         if hasattr(self, 'window'):
@@ -17,7 +17,7 @@ class StatusWindow(threading.Thread):
     def handle_close_button(self):
         # if hasattr(self, 'recording_thread'):
         #     self.recording_thread.stop()
-        self.status_queue.put(('cancel', ''))
+        self.status_pipe.put(('cancel', ''))
 
     def run(self):
         self.window = tk.Tk()
@@ -61,7 +61,7 @@ class StatusWindow(threading.Thread):
 
     def process_queue(self):
         try:
-            status, text = self.status_queue.get_nowait()
+            status, text = self.status_pipe.get_nowait()
             if status in ('idle', 'error', 'cancel'):
                 self.window.quit()
                 self.window.destroy()

@@ -17,7 +17,7 @@
         "vad_filter": true
     },
     "activation_key": "// not working - ctrl+alt+space",
-    "sound_device": 4,
+    "sound_device": 6,
     "sample_rate": 16000,
     "silence_duration": 500,
     "writing_key_press_delay": 0.005,
