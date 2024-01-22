@@ -15,7 +15,7 @@ from faster_whisper import WhisperModel
 from utils import load_config_with_defaults
 from constants import Recording, State
 
-def record_audio(config, recordings_queue, control_recording_pipe, status_pipe):
+def record_audio(config, recordings_queue, stop_recording, status_pipe):
     sound_device = config['sound_device'] if config else None
     sample_rate = config['sample_rate'] if config else 16000  # 16kHz, supported values: 8kHz, 16kHz, 32kHz, 48kHz, 96kHz
     frame_duration = 30  # 30ms, supported values: 10, 20, 30
@@ -31,8 +31,7 @@ def record_audio(config, recordings_queue, control_recording_pipe, status_pipe):
     exit_reason = "Unknown"
 
     while True:
-        message = control_recording_pipe.recv()
-        if message == Recording.START:
+        if not stop_recording.is_set():
             try:
                 # find out device: `python -m sounddevice`
                 with sd.InputStream(samplerate=sample_rate, channels=1, dtype='int16', blocksize=sample_rate * frame_duration // 1000,
@@ -58,8 +57,8 @@ def record_audio(config, recordings_queue, control_recording_pipe, status_pipe):
                         if num_silent_frames >= num_silence_frames:
                             if len(recording) < sample_rate:  # If <1 sec of audio recorded, continue
                                 continue  
-                            # if cancel_flag():
-                            #     exit_reason= "Hotkey pressed"
+                            if stop_recording.is_set():
+                                 exit_reason= "Hotkey pressed - stop in rec"
                             if num_silent_frames >= num_silence_frames:
                                 exit_reason = "Silence"
                                 break

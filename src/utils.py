@@ -21,7 +21,6 @@ def load_config_with_defaults():
             'vad_filter': False,
         },
         'activation_key': 'ctrl+shift+space',
-        'activation_key_batching': 'ctrl+shift+i',
         'sound_device': None,
         'sample_rate': 16000,
         'silence_duration': 900,

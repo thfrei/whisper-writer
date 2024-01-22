@@ -16,7 +16,7 @@
         "condition_on_previous_text": true,
         "vad_filter": true
     },
-    "activation_key": "// not working - ctrl+alt+space",
+    "activation_key": "ctrl+alt+space",
     "sound_device": 6,
     "sample_rate": 16000,
     "silence_duration": 500,
