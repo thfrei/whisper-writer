@@ -127,3 +127,11 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# User customizations
+src/config.json
+launch.bat
+.gitignore
+
+# aider stuff
+.aider*
