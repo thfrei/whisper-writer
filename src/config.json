@@ -2,24 +2,24 @@
     "use_api": false,
     "api_options": {
         "model": "whisper-1",
-        "language": null,
+        "language": "en",
         "temperature": 0.0,
         "initial_prompt": null
     },
     "local_model_options": {
-        "model": "base",
-        "device": "auto",
+        "model": "large-v3",
+        "device": "cpu",
         "compute_type": "auto",
         "language": null,
         "temperature": 0.0,
         "initial_prompt": null,
         "condition_on_previous_text": true,
-        "vad_filter": false
+        "vad_filter": true
     },
-    "activation_key": "ctrl+shift+space",
-    "sound_device": null,
+    "activation_key": "ctrl+alt+space",
+    "sound_device": 6,
     "sample_rate": 16000,
-    "silence_duration": 900,
+    "silence_duration": 500,
     "writing_key_press_delay": 0.005,
     "remove_trailing_period": false,
     "add_trailing_space": true,

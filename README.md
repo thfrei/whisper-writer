@@ -1,5 +1,16 @@
 # <img src="./assets/ww-logo.png" alt="WhisperWriter icon" width="25" height="25"> WhisperWriter
 
+--- 
+
+## Changelog to original application
+
+- rewrite appication and restructure code.
+- continous recording and transcribing: recording, saving, transcribing and typing is split into subprocesses, so that longer speech is split into multiple recordings. each recording is then saved, and transcribed and "typed" while next recording is still running. 
+- pressing shortcut again, will stop recording.
+- unfinished: StatusWindow is not yet showing.
+
+---
+
 ![version](https://img.shields.io/badge/version-1.0.0-blue)
 
 <p align="center">
