@@ -1,19 +1,8 @@
-import queue, traceback
-import numpy as np
-import openai
-import os
-import sounddevice as sd
-import tempfile
-import wave
-import webrtcvad
-import threading
 import time
-from multiprocessing import Queue, Process
-from pynput.keyboard import Controller as KeyboardController
-from dotenv import load_dotenv
-from faster_whisper import WhisperModel
-from utils import load_config_with_defaults
-from constants import Recording, State
+
+import numpy as np
+import sounddevice as sd
+import webrtcvad
 
 def record_audio(config, recordings_queue, stop_recording, status_pipe):
     sound_device = config['sound_device'] if config else None

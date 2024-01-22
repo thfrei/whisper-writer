@@ -1,18 +1,8 @@
-import queue, traceback
-import numpy as np
-import openai
-import os
-import sounddevice as sd
-import tempfile
-import wave
-import webrtcvad
-import threading
 import time
-from multiprocessing import Queue, Process
+
 from pynput.keyboard import Controller as KeyboardController
-from dotenv import load_dotenv
-from faster_whisper import WhisperModel
-from utils import load_config_with_defaults
+import queue, traceback
+
 
 def typing(transcriptions_queue, status_pipe):
     keyboard = KeyboardController()

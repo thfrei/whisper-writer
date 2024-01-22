@@ -4,7 +4,3 @@ from enum import Enum
 class State(Enum):
     IDLE = 'idle'
     RECORDING = 'recording'
-
-class Recording(Enum):
-    START = 'start'
-    STOP = 'stop'

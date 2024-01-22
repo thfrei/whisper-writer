@@ -1,31 +1,15 @@
-# Standard library imports
 import os
-import queue
-import tempfile
-import threading
-import time
-import traceback
-import wave
 from multiprocessing import Pipe, Process, Queue, Event
 
-# Third-party imports
-import numpy as np
-import openai
-import sounddevice as sd
-import webrtcvad
-from dotenv import load_dotenv
-from faster_whisper import WhisperModel
 from pynput import keyboard
-from pynput.keyboard import Controller
 
-# Local application/library-specific imports
 from record import record_audio
 from save import save_audio
-from status_window import StatusWindow
+# from status_window import StatusWindow
 from transcribe import transcribe_audio
 from type import typing
 from utils import load_config_with_defaults
-from constants import Recording, State
+from constants import State
 from keyboard_key_parser import parse_key_combination
 
 recordings_queue = Queue()
