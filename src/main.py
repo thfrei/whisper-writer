@@ -89,6 +89,7 @@ if __name__ == "__main__":
         saving_process.join()
         transcription_process.join()
         typing_process.join()
+        os.system('exit')
 
     print(f'Press shortcut {config["activation_key"]} to start recording and transcribing. \nPress Ctrl+C on the terminal window to quit.')
     try:
