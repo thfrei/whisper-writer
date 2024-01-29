@@ -3,9 +3,9 @@ from pynput import keyboard
 # Define a dictionary that maps the string representation of keys to their keyboard.Key constants
 KEY_MAP = {
     # Modifier keys
-    'ctrl': keyboard.Key.ctrl,
-    'alt': keyboard.Key.alt,
-    'shift': keyboard.Key.shift,
+    'ctrl': keyboard.Key.ctrl_l, # ctrl only works linux, windows you most likely mean ctrl_l
+    'alt': keyboard.Key.alt_l,
+    'shift': keyboard.Key.shift_l,
     'ctrl_l': keyboard.Key.ctrl_l,
     'ctrl_r': keyboard.Key.ctrl_r,
     'alt_l': keyboard.Key.alt_l,
