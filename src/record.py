@@ -52,6 +52,9 @@ def record_audio(config, recordings_queue, stop_recording, status_pipe):
                                 exit_reason = "Silence"
                                 break
                             break
+                        
+                        if stop_recording.is_set():
+                            break
 
                 audio_data = np.array(recording, dtype=np.int16)
                 recordings_queue.put(audio_data)
