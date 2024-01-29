@@ -25,6 +25,7 @@ def load_config_with_defaults_from_env():
         # vad silence filter: 3 highest
         'vad': int(os.getenv('VAD', '2')),
         'activation_key': os.getenv('ACTIVATION_KEY', 'ctrl+shift+space'),
+        'push_to_talk': os.getenv('PUSH_TO_TALK', 'F7'),
         'sound_device': int(os.getenv('SOUND_DEVICE')) if os.getenv('SOUND_DEVICE') else None,
         'sample_rate': int(os.getenv('SAMPLE_RATE', '16000')),
         'silence_duration': int(os.getenv('SILENCE_DURATION', '900')),
