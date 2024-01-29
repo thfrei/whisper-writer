@@ -1,10 +1,12 @@
 import time
-
-from pynput.keyboard import Controller as KeyboardController
 import queue, traceback
 
+from pynput.keyboard import Controller as KeyboardController
 
-def typing(transcriptions_queue, status_pipe):
+
+def typing(transcriptions_queue, status_pipe, init_worker):
+    init_worker()
+
     keyboard = KeyboardController()
     while True:
         try:

@@ -28,7 +28,9 @@ def create_local_model(config):
     return model
 
 
-def transcribe_audio(config, files_queue, transcriptions_queue, status_pipe):
+def transcribe_audio(config, files_queue, transcriptions_queue, status_pipe, init_worker):
+    init_worker()
+    
     method = 'OpenAI\'s API' if config['use_api'] else 'a local model'
     local_model = None
     print(f'Script activated. Whisper is set to run using {method}. To change this, modify the "use_api" value in the src\\config.json file.')

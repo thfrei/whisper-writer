@@ -4,7 +4,9 @@ import numpy as np
 import sounddevice as sd
 import webrtcvad
 
-def record_audio(config, recordings_queue, stop_recording, status_pipe):
+def record_audio(config, recordings_queue, stop_recording, status_pipe, init_worker):
+    init_worker()
+    
     sound_device = config['sound_device'] if config else None
     sample_rate = config['sample_rate'] if config else 16000  # 16kHz, supported values: 8kHz, 16kHz, 32kHz, 48kHz, 96kHz
     frame_duration = 30  # 30ms, supported values: 10, 20, 30
