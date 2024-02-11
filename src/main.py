@@ -9,6 +9,7 @@ from save import save_audio
 # from status_window import StatusWindow
 from transcribe import transcribe_audio
 from type import typing
+from status import status
 from utils import load_config_with_defaults_from_env
 from constants import State
 from keyboard_key_parser import parse_key_combination
@@ -16,8 +17,8 @@ from keyboard_key_parser import parse_key_combination
 recordings_queue = Queue()
 files_queue = Queue()
 transcriptions_queue = Queue()
+status_queue = Queue()
 
-status_pipe_parent, status_pipe_child = Pipe()
 stop_recording = Event()
 stop_recording.set()
 
@@ -98,11 +99,13 @@ def init_worker():
 
 if __name__ == "__main__":
     try:
+        # signal.signal(signal.SIGINT, signal.sig_)
         # Creating and starting the threads
-        recording_process = Process(target=record_audio, args=(config, recordings_queue, stop_recording, status_pipe_child,init_worker,))
-        saving_process = Process(target=save_audio, args=(config, recordings_queue, files_queue, status_pipe_child,init_worker,))
-        transcription_process = Process(target=transcribe_audio, args=(config, files_queue, transcriptions_queue, status_pipe_child,init_worker,))
-        typing_process = Process(target=typing, args=(transcriptions_queue, status_pipe_child,init_worker,))
+        recording_process = Process(target=record_audio, args=(config, recordings_queue, stop_recording, status_queue, init_worker,))
+        saving_process = Process(target=save_audio, args=(config, recordings_queue, files_queue, status_queue, init_worker,))
+        transcription_process = Process(target=transcribe_audio, args=(config, files_queue, transcriptions_queue, status_queue, init_worker,))
+        typing_process = Process(target=typing, args=(transcriptions_queue, status_queue, init_worker,))
+        status_process = Process(target=status, args=(status_queue, init_worker, ))
 
         recording_process.start()
         print(f"PID: {recording_process.pid} - recording")
@@ -112,6 +115,8 @@ if __name__ == "__main__":
         print(f"PID: {transcription_process.pid} - transcription")
         typing_process.start()
         print(f"PID: {typing_process.pid} - typing")
+        status_process.start()
+        print(f"PID: {status_process.pid} - status window")
 
     except KeyboardInterrupt:
         print("\nCaught KeyboardInterrupt, terminating processes...")
@@ -119,11 +124,13 @@ if __name__ == "__main__":
         saving_process.terminate()
         transcription_process.terminate()
         typing_process.terminate()
+        status_process.terminate()
 
         recording_process.join()
         saving_process.join()
         transcription_process.join()
         typing_process.join()
+        status_process.join()
         print('\nExiting the script...')
         os.system('exit')
 

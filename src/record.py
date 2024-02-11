@@ -4,7 +4,7 @@ import numpy as np
 import sounddevice as sd
 import webrtcvad
 
-def record_audio(config, recordings_queue, stop_recording, status_pipe, init_worker):
+def record_audio(config, recordings_queue, stop_recording, status_queue, init_worker):
     init_worker()
     
     sound_device = config['sound_device'] if config else None
@@ -28,7 +28,9 @@ def record_audio(config, recordings_queue, stop_recording, status_pipe, init_wor
                 with sd.InputStream(samplerate=sample_rate, channels=1, dtype='int16', blocksize=sample_rate * frame_duration // 1000,
                                     device=sound_device, callback=lambda indata, frames, time, status: buffer.extend(indata[:, 0])) as stream:
                     device_info = sd.query_devices(stream.device)
-                    print('Recording with sound device:', device_info['name']) if config['print_to_terminal'] else ''
+                    device_name = device_info['name']
+                    print('Recording with sound device:', device_name) if config['print_to_terminal'] else ''
+                    status_queue.put(('info', f'Recording with sound device: {device_name}'))
                     while True:
                         if len(buffer) < sample_rate * frame_duration // 1000:
                             continue

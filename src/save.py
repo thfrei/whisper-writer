@@ -4,7 +4,7 @@ import traceback
 import wave
 import time
 
-def save_audio(config, recordings_queue, files_queue, status_pipe, init_worker):
+def save_audio(config, recordings_queue, files_queue, status_queue, init_worker):
     init_worker()
 
     sample_rate = config['sample_rate'] if config else 16000  # 16kHz, supported values: 8kHz, 16kHz, 32kHz, 48kHz, 96kHz
